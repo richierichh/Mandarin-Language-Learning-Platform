@@ -50,7 +50,7 @@ export default async function Home() {
           </p>
           <div className="mt-10">
             <Link
-              href="/login"
+              href="/learn"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
             >
               Start Learning
