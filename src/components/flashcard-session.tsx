@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { VocabularyEntry } from "@/data/vocabulary.types";
 import { Flashcard } from "./flashcard";
@@ -14,6 +14,9 @@ interface FlashcardSessionProps {
   nextHref?: string;
   category?: string;
   level?: number;
+  initialIndex?: number;
+  initialCorrect?: number;
+  initialIncorrect?: number;
 }
 
 export function FlashcardSession({
@@ -22,14 +25,18 @@ export function FlashcardSession({
   nextHref,
   category,
   level,
+  initialIndex = 0,
+  initialCorrect = 0,
+  initialIncorrect = 0,
 }: FlashcardSessionProps) {
   const router = useRouter();
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initialIndex);
   const [flipped, setFlipped] = useState(false);
-  const [correct, setCorrect] = useState(0);
-  const [incorrect, setIncorrect] = useState(0);
+  const [correct, setCorrect] = useState(initialCorrect);
+  const [incorrect, setIncorrect] = useState(initialIncorrect);
   const [answered, setAnswered] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [finalized, setFinalized] = useState(false);
   const sessionStartedAt = useRef(Date.now());
   const [attempts, setAttempts] = useState<{ wordId: string; correct: boolean }[]>([]);
   const finished = index >= cards.length;
@@ -63,6 +70,7 @@ export function FlashcardSession({
     setIncorrect(0);
     setAnswered(false);
     setAttempts([]);
+    setFinalized(false);
   }, []);
 
   const handleSaveAndExit = useCallback(async () => {
@@ -74,6 +82,9 @@ export function FlashcardSession({
         level,
         startedAt: sessionStartedAt.current,
         attempts,
+        currentIndex: index,
+        currentCorrect: correct,
+        currentIncorrect: incorrect,
       });
       if (result?.error) {
         setExiting(false);
@@ -81,7 +92,31 @@ export function FlashcardSession({
       }
     }
     router.push(backHref);
-  }, [backHref, category, level, attempts, exiting]);
+  }, [backHref, category, level, attempts, exiting, index, correct, incorrect]);
+
+  useEffect(() => {
+    if (!finished || finalized || category == null || level == null) return;
+
+    let cancelled = false;
+    const persistCompletion = async () => {
+      const result = await saveProgressAndExit({
+        category,
+        level,
+        startedAt: sessionStartedAt.current,
+        attempts,
+        currentIndex: cards.length,
+        currentCorrect: correct,
+        currentIncorrect: incorrect,
+        markComplete: true,
+      });
+      if (!cancelled && !result?.error) setFinalized(true);
+    };
+    void persistCompletion();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [finished, finalized, category, level, attempts, cards.length, correct, incorrect]);
 
   if (cards.length === 0) {
     return (
@@ -111,12 +146,14 @@ export function FlashcardSession({
           >
             Try again
           </button>
-          <Link
-            href={backHref}
+          <button
+            type="button"
+            onClick={handleSaveAndExit}
+            disabled={exiting}
             className="rounded-xl border border-zinc-300 px-6 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
           >
-            All courses
-          </Link>
+            {exiting ? "Saving…" : "All courses"}
+          </button>
           {nextHref && (
             <Link
               href={nextHref}

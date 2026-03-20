@@ -23,6 +23,21 @@ export default async function LearnPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const continueByCategory = new Map<string, number>();
+
+  if (user) {
+    const { data } = await supabase
+      .from("user_level_progress")
+      .select("category, level, updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+
+    for (const row of data ?? []) {
+      if (!continueByCategory.has(row.category)) {
+        continueByCategory.set(row.category, row.level);
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#faf9f7] text-zinc-900">
@@ -96,6 +111,16 @@ export default async function LearnPage() {
                   ),
                 )}
               </div>
+              {continueByCategory.has(cat) && (
+                <div className="mt-4">
+                  <Link
+                    href={`/learn/${cat}/${continueByCategory.get(cat)}`}
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-white transition hover:bg-amber-600"
+                  >
+                    Continue level {continueByCategory.get(cat)}
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
         </div>

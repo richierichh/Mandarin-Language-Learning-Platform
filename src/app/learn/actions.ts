@@ -7,6 +7,10 @@ export type SaveProgressInput = {
   level: number;
   startedAt: number;
   attempts: { wordId: string; correct: boolean }[];
+  currentIndex: number;
+  currentCorrect: number;
+  currentIncorrect: number;
+  markComplete?: boolean;
 };
 
 export async function saveProgressAndExit(input: SaveProgressInput) {
@@ -16,7 +20,16 @@ export async function saveProgressAndExit(input: SaveProgressInput) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const { startedAt, attempts } = input;
+  const {
+    category,
+    level,
+    startedAt,
+    attempts,
+    currentIndex,
+    currentCorrect,
+    currentIncorrect,
+    markComplete,
+  } = input;
   const correctCount = attempts.filter((a) => a.correct).length;
 
   const { data: session, error: sessionError } = await supabase
@@ -81,6 +94,28 @@ export async function saveProgressAndExit(input: SaveProgressInput) {
         updated_at: now,
       },
       { onConflict: "user_id,word_id" }
+    );
+  }
+
+  if (markComplete) {
+    await supabase
+      .from("user_level_progress")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("category", category)
+      .eq("level", level);
+  } else {
+    await supabase.from("user_level_progress").upsert(
+      {
+        user_id: user.id,
+        category,
+        level,
+        current_index: currentIndex,
+        correct_count: currentCorrect,
+        incorrect_count: currentIncorrect,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,category,level" }
     );
   }
 
