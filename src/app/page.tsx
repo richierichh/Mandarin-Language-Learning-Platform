@@ -118,7 +118,7 @@ export default async function Home() {
 
       <footer className="border-t border-zinc-200/80 py-6 text-center text-sm text-zinc-400">
         <div className="mx-auto max-w-5xl px-4">
-          Mandarin Learn — build your vocabulary and confidence, step by step.
+          Mandarin Learn. Build your vocabulary and confidence, step by step.
         </div>
       </footer>
     </div>

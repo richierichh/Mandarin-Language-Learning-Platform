@@ -8,7 +8,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Learn — Mandarin Learn",
+  title: "Learn: Mandarin Learn",
 };
 
 const categoryIcons: Record<string, string> = {
@@ -75,7 +75,7 @@ export default async function LearnPage() {
           Courses
         </h1>
         <p className="mt-2 text-zinc-500">
-          Pick a category and work through 10 levels — 5 new words each.
+          Pick a category and work through 10 levels, 5 new words each.
         </p>
 
         <div className="mt-10 grid gap-8 sm:grid-cols-2">

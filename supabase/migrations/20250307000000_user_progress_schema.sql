@@ -2,7 +2,7 @@
 -- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New query)
 
 -- =============================================================================
--- 1. user_word_progress — per-user, per-word stats (words completed, attempts)
+-- 1. user_word_progress - per-user, per-word stats (words completed, attempts)
 -- =============================================================================
 -- word_id matches your app vocabulary IDs (e.g. "g-1", "f-1", "d-1", "t-1", "s-1")
 create table if not exists public.user_word_progress (
@@ -31,7 +31,7 @@ create index if not exists idx_user_word_progress_user_id on public.user_word_pr
 create index if not exists idx_user_word_progress_last_seen on public.user_word_progress(user_id, last_seen_at desc nulls last);
 
 -- =============================================================================
--- 2. study_sessions — session history (when they studied, high-level stats)
+-- 2. study_sessions - session history (when they studied, high-level stats)
 -- =============================================================================
 create table if not exists public.study_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -53,7 +53,7 @@ create index if not exists idx_study_sessions_user_id on public.study_sessions(u
 create index if not exists idx_study_sessions_started_at on public.study_sessions(user_id, started_at desc);
 
 -- =============================================================================
--- 3. session_attempts — per-card attempts inside a session (drill-down history)
+-- 3. session_attempts - per-card attempts inside a session (drill-down history)
 -- =============================================================================
 create table if not exists public.session_attempts (
   id uuid primary key default gen_random_uuid(),
@@ -71,7 +71,7 @@ create index if not exists idx_session_attempts_session_id on public.session_att
 create index if not exists idx_session_attempts_word_id on public.session_attempts(word_id);
 
 -- =============================================================================
--- 4. Row Level Security (RLS) — users can only see/edit their own data
+-- 4. Row Level Security (RLS) - users can only see/edit their own data
 -- =============================================================================
 alter table public.user_word_progress enable row level security;
 alter table public.study_sessions enable row level security;

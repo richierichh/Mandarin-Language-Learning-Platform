@@ -33,7 +33,7 @@ export async function generateMetadata({
 }) {
   const { category, level } = await params;
   const label = categoryLabels[category as VocabularyCategory] ?? category;
-  return { title: `${label} — Level ${level} — Mandarin Learn` };
+  return { title: `${label}, Level ${level}: Mandarin Learn` };
 }
 
 export default async function LevelPage({

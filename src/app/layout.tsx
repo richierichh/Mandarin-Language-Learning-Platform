@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mandarin Learn — Learn Mandarin, step by step",
+  title: "Mandarin Learn: Learn Mandarin, step by step",
   description:
     "A focused language tool: vocabulary, characters, practice, and progress tracking so you build real Mandarin skills.",
 };
