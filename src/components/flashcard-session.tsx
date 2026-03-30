@@ -35,6 +35,7 @@ export function FlashcardSession({
   initialIncorrect = 0,
 }: FlashcardSessionProps) {
   const router = useRouter();
+  const [deck, setDeck] = useState<VocabularyEntry[]>(() => [...cards]);
   const [index, setIndex] = useState(initialIndex);
   const [flipped, setFlipped] = useState(false);
   const [correct, setCorrect] = useState(initialCorrect);
@@ -44,12 +45,14 @@ export function FlashcardSession({
   const [finalized, setFinalized] = useState(false);
   const sessionStartedAt = useRef(Date.now());
   const [attempts, setAttempts] = useState<{ wordId: string; correct: boolean }[]>([]);
+  const missCountRef = useRef<Map<string, number>>(new Map());
   const [pronunciationGrade, setPronunciationGrade] =
     useState<PronunciationGradeResult | null>(null);
   /** How many scaffold steps to show (1 = first step only); reset when a new grade arrives. */
   const [scaffoldVisibleSteps, setScaffoldVisibleSteps] = useState(1);
   const [pronunciationPrep, setPronunciationPrep] = useState(false);
-  const finished = index >= cards.length;
+  const finished = index >= deck.length;
+  const isRetryCard = index >= cards.length;
 
   useEffect(() => {
     if (pronunciationGrade != null) setScaffoldVisibleSteps(1);
@@ -62,13 +65,23 @@ export function FlashcardSession({
   const handleAnswer = useCallback(
     (isCorrect: boolean) => {
       if (answered) return;
-      const card = cards[index];
-      if (card) setAttempts((a) => [...a, { wordId: card.id, correct: isCorrect }]);
-      if (isCorrect) setCorrect((c) => c + 1);
-      else setIncorrect((c) => c + 1);
+      const card = deck[index];
+      if (!card) return;
+      setAttempts((a) => [...a, { wordId: card.id, correct: isCorrect }]);
+      if (isCorrect) {
+        setCorrect((c) => c + 1);
+      } else {
+        const misses = (missCountRef.current.get(card.id) ?? 0) + 1;
+        missCountRef.current.set(card.id, misses);
+        if (misses >= 2) {
+          setIncorrect((c) => c + 1);
+        } else {
+          setDeck((d) => [...d, card]);
+        }
+      }
       setAnswered(true);
     },
-    [answered, cards, index],
+    [answered, deck, index],
   );
 
   const handleNext = useCallback(() => {
@@ -80,16 +93,18 @@ export function FlashcardSession({
   }, []);
 
   const handleRestart = useCallback(() => {
+    setDeck([...cards]);
     setIndex(0);
     setFlipped(false);
     setCorrect(0);
     setIncorrect(0);
     setAnswered(false);
     setAttempts([]);
+    missCountRef.current.clear();
     setFinalized(false);
     setPronunciationGrade(null);
     setScaffoldVisibleSteps(1);
-  }, []);
+  }, [cards]);
 
   const handlePronunciationGraded = useCallback(
     (result: PronunciationGradeResult) => {
@@ -130,7 +145,7 @@ export function FlashcardSession({
         level,
         startedAt: sessionStartedAt.current,
         attempts,
-        currentIndex: cards.length,
+        currentIndex: deck.length,
         currentCorrect: correct,
         currentIncorrect: incorrect,
         markComplete: true,
@@ -142,7 +157,7 @@ export function FlashcardSession({
     return () => {
       cancelled = true;
     };
-  }, [finished, finalized, category, level, attempts, cards.length, correct, incorrect]);
+  }, [finished, finalized, category, level, attempts, deck.length, correct, incorrect]);
 
   if (cards.length === 0) {
     return (
@@ -193,7 +208,7 @@ export function FlashcardSession({
     );
   }
 
-  const card = cards[index];
+  const card = deck[index];
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -245,8 +260,14 @@ export function FlashcardSession({
 
       {/* Progress bar */}
       <div className="mt-4">
-        <ProgressBar current={index} total={cards.length} />
+        <ProgressBar current={correct + incorrect} total={cards.length} />
       </div>
+
+      {isRetryCard && (
+        <p className="mt-3 text-center text-xs font-medium text-amber-600">
+          Retry — try this word once more
+        </p>
+      )}
 
       {/* Flashcard */}
       <div className="mt-8">
@@ -487,7 +508,7 @@ export function FlashcardSession({
             onClick={handleNext}
             className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-white shadow transition hover:bg-amber-600"
           >
-            {index + 1 < cards.length ? "Next card" : "See results"}
+            {index + 1 < deck.length ? "Next card" : "See results"}
           </button>
         </div>
       )}

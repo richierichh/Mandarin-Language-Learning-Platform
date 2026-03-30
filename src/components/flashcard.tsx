@@ -555,13 +555,14 @@ function PronunciationButton({
         const recorderSource = recorderAudioCtx.createMediaStreamSource(micStream);
         const processorNode = recorderAudioCtx.createScriptProcessor(2048, 1, 1);
         processorNode.onaudioprocess = (ev: AudioProcessingEvent) => {
+          if (!audioPipeRef.current) return;
           const float32 = ev.inputBuffer.getChannelData(0);
           const int16 = new Int16Array(float32.length);
           for (let i = 0; i < float32.length; i++) {
             const s = Math.max(-1, Math.min(1, float32[i]));
             int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
           }
-          pushStream.write(int16.buffer);
+          try { pushStream.write(int16.buffer); } catch { /* stream already closed */ }
         };
         recorderSource.connect(processorNode);
         processorNode.connect(recorderAudioCtx.destination);
