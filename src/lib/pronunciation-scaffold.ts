@@ -71,9 +71,12 @@ export function parseAssessmentNBest(jsonResult: string): {
   }
 }
 
-/** NFC + strip whitespace for comparing ASR transcript to reference Hanzi. */
+/** NFC + strip whitespace and punctuation for comparing ASR transcript to reference Hanzi. */
 export function normalizeForLexicalComparison(s: string): string {
-  return s.normalize("NFC").replace(/\s+/g, "").trim();
+  return s
+    .normalize("NFC")
+    .replace(/[\s\p{P}\p{S}]/gu, "")
+    .trim();
 }
 
 export interface PronunciationSegmentSnapshot {

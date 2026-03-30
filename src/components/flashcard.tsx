@@ -12,18 +12,18 @@ import {
 
 const rawPass = Number(process.env.NEXT_PUBLIC_PRONUNCIATION_PASS_SCORE);
 /** Default pass threshold (0–100) for pronunciation vs reference text. */
-export const PRONUNCIATION_PASS_SCORE = Number.isFinite(rawPass) ? rawPass : 70;
+export const PRONUNCIATION_PASS_SCORE = Number.isFinite(rawPass) ? rawPass : 60;
 
 const strictEnv = process.env.NEXT_PUBLIC_PRONUNCIATION_STRICT;
-/** Lexical + word-level gates (off if NEXT_PUBLIC_PRONUNCIATION_STRICT=0|false). */
+/** Lexical + word-level gates (on only if NEXT_PUBLIC_PRONUNCIATION_STRICT=1|true). */
 export const PRONUNCIATION_STRICT =
-  strictEnv !== "0" && strictEnv !== "false";
+  strictEnv === "1" || strictEnv === "true";
 
 const rawMinWord = Number(process.env.NEXT_PUBLIC_PRONUNCIATION_MIN_WORD_ACCURACY);
-const PRONUNCIATION_MIN_WORD_ACCURACY = Number.isFinite(rawMinWord) ? rawMinWord : 70;
+const PRONUNCIATION_MIN_WORD_ACCURACY = Number.isFinite(rawMinWord) ? rawMinWord : 50;
 
 const rawLexCap = Number(process.env.NEXT_PUBLIC_PRONUNCIATION_LEXICAL_MISMATCH_CAP);
-const PRONUNCIATION_LEXICAL_CAP = Number.isFinite(rawLexCap) ? rawLexCap : 50;
+const PRONUNCIATION_LEXICAL_CAP = Number.isFinite(rawLexCap) ? rawLexCap : 40;
 
 /** Single-utterance path: closes push stream on stop so `recognizeOnceAsync` completes; enables EnableMiscue in SDK. */
 const USE_RECOGNIZE_ONCE = process.env.NEXT_PUBLIC_PRONUNCIATION_RECOGNIZE_ONCE === "1";
@@ -347,8 +347,28 @@ function PronunciationButton({
         ];
       }
       if (!segs.length) {
-        setError("No pronunciation score received. Try speaking louder or closer to the mic.");
-        onFeedbackMessage?.(null, "No pronunciation score received.");
+        setError(null);
+        setScore({ PronScore: 0, AccuracyScore: 0, FluencyScore: 0, CompletenessScore: 0 });
+        const scaffold = buildPronunciationScaffold({
+          expectedChinese: text,
+          expectedPinyin,
+          overallPronScore: 0,
+          passScore,
+          completenessScore: 0,
+        });
+        onGraded?.({
+          correct: false,
+          score: 0,
+          azurePronScore: 0,
+          accuracyScore: 0,
+          fluencyScore: 0,
+          completenessScore: 0,
+          recognizedText: undefined,
+          errorReason: "No speech matched the reference text.",
+          scaffold,
+          segmentCount: 0,
+        });
+        onFeedbackMessage?.(null, null);
         return;
       }
       const strict = computeStrictPronunciationGrade(text, segs, {
@@ -358,8 +378,28 @@ function PronunciationButton({
         lexicalMismatchCap: PRONUNCIATION_LEXICAL_CAP,
       });
       if (!strict) {
-        setError("No pronunciation score received. Try speaking louder or closer to the mic.");
-        onFeedbackMessage?.(null, "No pronunciation score received.");
+        setError(null);
+        setScore({ PronScore: 0, AccuracyScore: 0, FluencyScore: 0, CompletenessScore: 0 });
+        const scaffold = buildPronunciationScaffold({
+          expectedChinese: text,
+          expectedPinyin,
+          overallPronScore: 0,
+          passScore,
+          completenessScore: 0,
+        });
+        onGraded?.({
+          correct: false,
+          score: 0,
+          azurePronScore: 0,
+          accuracyScore: 0,
+          fluencyScore: 0,
+          completenessScore: 0,
+          recognizedText: undefined,
+          errorReason: "No speech matched the reference text.",
+          scaffold,
+          segmentCount: 0,
+        });
+        onFeedbackMessage?.(null, null);
         return;
       }
       setError(null);
@@ -562,12 +602,7 @@ function PronunciationButton({
               const snap = parseSegmentFromRecognizerResult(sdk, result);
               segmentsRef.current = snap ? [snap] : [];
               if (!snap) {
-                if (result.reason === sdk.ResultReason.NoMatch) {
-                  setError("No speech recognized. Speak clearly, then tap stop.");
-                } else {
-                  setError("Could not assess pronunciation. Try again.");
-                }
-                onFeedbackMessage?.(null, "No pronunciation result.");
+                applyPronunciationGrade([]);
                 setState("idle");
                 return;
               }
